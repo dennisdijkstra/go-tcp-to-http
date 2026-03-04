@@ -18,61 +18,62 @@ type RequestLine struct {
 }
 
 func RequestFromReader(reader io.Reader) (*Request, error) {
-	data, err := io.ReadAll(reader)
+	rawBytes, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
 
-	before, _, ok := bytes.Cut(data, []byte("\r\n"))
-	if !ok {
+	requestLine, err := parseRequestLine(rawBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Request{
+		RequestLine: *requestLine,
+	}, nil
+}
+
+func parseRequestLine(data []byte) (*RequestLine, error) {
+	index := bytes.Index(data, []byte("\r\n"))
+	if index == -1 {
 		return nil, errors.New("Invalid request")
 	}
 
-	line, err := parseRequestLine(before)
-	if err != nil {
-		return nil, err
-	}
+	requestLineString := string(data[:index])
 
-	request := Request{
-		RequestLine: *line,
-	}
-
-	return &request, nil
-}
-
-func parseRequestLine(line []byte) (*RequestLine, error) {
-	s := string(line)
-
-	parts := strings.Split(s, " ")
+	parts := strings.Split(requestLineString, " ")
 	if len(parts) != 3 {
 		return nil, errors.New("Invalid request")
 	}
 
-	err := isAllUppercase(parts[0])
+	method := parts[0]
+	err := isAllUppercase(method)
 	if err != nil {
 		return nil, err
 	}
+
+	requestTarget := parts[1]
 
 	versionParts := strings.Split(parts[2], "/")
 	if len(versionParts) != 2 {
 		return nil, errors.New("Invalid request")
 	}
 
-	if versionParts[0] != "HTTP" {
+	httpPart := versionParts[0]
+	if httpPart != "HTTP" {
 		return nil, errors.New("Invalid request")
 	}
 
-	if versionParts[1] != "1.1" {
+	version := versionParts[1]
+	if version != "1.1" {
 		return nil, errors.New("Invalid request")
 	}
 
-	requestLine := RequestLine{
-		Method:        parts[0],
-		RequestTarget: parts[1],
-		HttpVersion:   versionParts[1],
-	}
-
-	return &requestLine, nil
+	return &RequestLine{
+		Method:        method,
+		RequestTarget: requestTarget,
+		HttpVersion:   version,
+	}, nil
 }
 
 func isAllUppercase(method string) error {
