@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"main/internal/request"
 	"net"
 	"strings"
 )
@@ -26,11 +27,15 @@ func main() {
 		}
 		fmt.Printf("New connection from %s\n", conn.RemoteAddr())
 
-		lines := getLinesChannel(conn)
-
-		for line := range lines {
-			fmt.Println(line)
+		req, err := request.RequestFromReader(conn)
+		if err != nil {
+			log.Fatalf("error: %s\n", err.Error())
 		}
+
+		fmt.Println("Request line:")
+		fmt.Printf("- Method: %s\n", req.RequestLine.Method)
+		fmt.Printf("- Target: %s\n", req.RequestLine.RequestTarget)
+		fmt.Printf("- Version: %s\n", req.RequestLine.HttpVersion)
 
 		fmt.Printf("Connection from %s closed\n", conn.RemoteAddr())
 	}
