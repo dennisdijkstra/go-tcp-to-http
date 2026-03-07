@@ -17,7 +17,7 @@ func NewHeaders() Headers {
 
 func (h Headers) Parse(data []byte) (n int, done bool, err error) {
 	if h == nil {
-		return 0, false, errors.New("nil headers")
+		return 0, false, errors.New("headers map cannot be nil")
 	}
 
 	index := bytes.Index(data, []byte(crlf))
