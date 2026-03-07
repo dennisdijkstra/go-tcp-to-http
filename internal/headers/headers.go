@@ -3,6 +3,7 @@ package headers
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -32,18 +33,18 @@ func (h Headers) Parse(data []byte) (n int, done bool, err error) {
 
 	parts := strings.SplitN(string(headerLine), ":", 2)
 	if len(parts) != 2 {
-		return 0, false, errors.New("Invalid header format")
+		return 0, false, fmt.Errorf("invalid header format: %s", string(headerLine))
 	}
 
 	key := strings.ToLower(parts[0])
 	if key != strings.TrimSpace(key) {
-		return 0, false, errors.New("Invalid header format")
+		return 0, false, fmt.Errorf("invalid header name: %s", key)
 	}
 
 	for i := 0; i < len(key); i++ {
 		char := key[i]
 		if !isTokenChar(char) {
-			return 0, false, errors.New("Invalid header format")
+			return 0, false, fmt.Errorf("invalid header token found: %s", key)
 		}
 	}
 
