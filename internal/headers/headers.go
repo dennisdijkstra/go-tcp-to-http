@@ -36,10 +36,12 @@ func (h Headers) Parse(data []byte) (n int, done bool, err error) {
 		return 0, false, fmt.Errorf("invalid header format: %s", string(headerLine))
 	}
 
-	key := strings.ToLower(parts[0])
-	if key != strings.TrimSpace(key) {
+	key := strings.TrimLeft(string(parts[0]), " ")
+	if key != strings.TrimRight(key, " ") {
 		return 0, false, fmt.Errorf("invalid header name: %s", key)
 	}
+
+	key = strings.ToLower(key)
 
 	for i := 0; i < len(key); i++ {
 		char := key[i]
