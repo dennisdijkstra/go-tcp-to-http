@@ -51,9 +51,20 @@ func (h Headers) Parse(data []byte) (n int, done bool, err error) {
 	}
 
 	value := strings.TrimSpace(parts[1])
-	h[key] = value
+	h.Set(key, value)
 
 	return index + len(crlf), false, nil
+}
+
+func (h Headers) Set(key, value string) {
+	key = strings.ToLower(key)
+
+	existingValue, ok := h[key]
+	if ok {
+		h[key] = existingValue + ", " + value
+	} else {
+		h[key] = value
+	}
 }
 
 func isTokenChar(b byte) bool {
