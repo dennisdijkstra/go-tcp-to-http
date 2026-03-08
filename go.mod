@@ -1,4 +1,4 @@
-module main
+module github.com/dennisdijkstra/go-tcp-to-http
 
 go 1.25.6
 

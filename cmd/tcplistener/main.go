@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"main/internal/request"
 	"net"
 	"strings"
+
+	"github.com/dennisdijkstra/go-tcp-to-http/internal/request"
 )
 
 const port = ":42069"
