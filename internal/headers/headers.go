@@ -67,6 +67,12 @@ func (h Headers) Set(key, value string) {
 	}
 }
 
+func (h Headers) Get(key string) (string, bool) {
+	key = strings.ToLower(key)
+	value, ok := h[key]
+	return value, ok
+}
+
 func isTokenChar(b byte) bool {
 	return isAlphaNumeric(b) || isSpecialChar(b)
 }
