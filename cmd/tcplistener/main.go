@@ -14,7 +14,7 @@ import (
 const port = ":42069"
 
 func main() {
-	listener, err := net.Listen("tcp", port)
+	listener, err := net.Listen("tcp", "127.0.0.1"+port)
 	if err != nil {
 		log.Fatalf("error listening for TCP traffic: %s\n", err.Error())
 	}
@@ -46,7 +46,9 @@ func main() {
 		fmt.Println("Body:")
 		fmt.Printf("%s\n", string(req.Body))
 
-		conn.Close()
+		if err := conn.Close(); err != nil {
+			log.Printf("error closing connection: %s\n", err.Error())
+		}
 		fmt.Printf("Connection from %s closed\n", conn.RemoteAddr())
 	}
 }
