@@ -1,8 +1,7 @@
 package server
 
 import (
-	"bytes"
-	"io"
+	"fmt"
 	"log"
 	"net"
 	"strconv"
@@ -16,12 +15,12 @@ type Server struct {
 	handler  Handler
 }
 
-type HandlerError struct {
-	StatusCode response.StatusCode
-	Message    string
-}
+// type HandlerError struct {
+// 	StatusCode response.StatusCode
+// 	Message    string
+// }
 
-type Handler func(w io.Writer, req *request.Request) *HandlerError
+type Handler func(w *response.Writer, req *request.Request)
 
 func (s *Server) Close() error {
 	return s.listener.Close()
@@ -38,60 +37,53 @@ func (s *Server) listen() {
 	}
 }
 
-func WriteHandlerError(w io.Writer, err *HandlerError) {
-	if err == nil {
-		return
-	}
+// func WriteHandlerError(w io.Writer, err *HandlerError) {
+// 	if err == nil {
+// 		return
+// 	}
 
-	if writeErr := response.WriteStatusLine(w, err.StatusCode); writeErr != nil {
-		log.Printf("Error writing status line: %v", writeErr)
-		return
-	}
+// 	if writeErr := response.WriteStatusLine(w, err.StatusCode); writeErr != nil {
+// 		log.Printf("Error writing status line: %v", writeErr)
+// 		return
+// 	}
 
-	headers := response.GetDefaultHeaders(len(err.Message))
-	if writeErr := response.WriteHeaders(w, headers); writeErr != nil {
-		log.Printf("Error writing headers: %v", writeErr)
-		return
-	}
+// 	headers := response.GetDefaultHeaders(len(err.Message))
+// 	if writeErr := response.WriteHeaders(w, headers); writeErr != nil {
+// 		log.Printf("Error writing headers: %v", writeErr)
+// 		return
+// 	}
 
-	if _, writeErr := w.Write([]byte(err.Message)); writeErr != nil {
-		log.Printf("Error writing error message: %v", writeErr)
-	}
-}
+// 	if _, writeErr := w.Write([]byte(err.Message)); writeErr != nil {
+// 		log.Printf("Error writing error message: %v", writeErr)
+// 	}
+// }
 
 func (s *Server) handle(conn net.Conn) {
 	defer conn.Close()
 
+	w := response.NewWriter(conn)
 	r, err := request.RequestFromReader(conn)
 	if err != nil {
-		log.Printf("Error parsing request: %v", err)
-		WriteHandlerError(conn, &HandlerError{
-			StatusCode: response.StatusBadRequest,
-			Message:    "Bad Request\n",
-		})
+		body := []byte(fmt.Sprintf("Error parsing request: %v", err))
+		if err := w.WriteStatusLine(response.StatusBadRequest); err != nil {
+			log.Printf("Error writing status line: %v", err)
+			return
+		}
+
+		headers := response.GetDefaultHeaders(len(body))
+		if err := w.WriteHeaders(headers); err != nil {
+			log.Printf("Error writing headers: %v", err)
+			return
+		}
+
+		if _, err := w.WriteBody(body); err != nil {
+			log.Printf("Error writing response body: %v", err)
+			return
+		}
 		return
 	}
 
-	buf := bytes.NewBuffer([]byte{})
-
-	handlerErr := s.handler(buf, r)
-	if handlerErr != nil {
-		WriteHandlerError(conn, handlerErr)
-		return
-	}
-
-	response.WriteStatusLine(conn, response.StatusOK)
-
-	headers := response.GetDefaultHeaders(buf.Len())
-	if err := response.WriteHeaders(conn, headers); err != nil {
-		log.Printf("Error writing headers: %v", err)
-		return
-	}
-
-	_, err = conn.Write(buf.Bytes())
-	if err != nil {
-		log.Printf("Error writing response: %v", err)
-	}
+	s.handler(w, r)
 }
 
 func Serve(port int, handler Handler) (*Server, error) {
