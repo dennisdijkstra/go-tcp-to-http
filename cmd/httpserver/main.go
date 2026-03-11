@@ -29,26 +29,31 @@ func main() {
 
 func handler(w *response.Writer, req *request.Request) {
 	if req.RequestLine.RequestTarget == "/yourproblem" {
-		writeHTMLResponse(w, response.StatusBadRequest, body400)
+		handler400(w, req)
 		return
 	}
 
 	if req.RequestLine.RequestTarget == "/myproblem" {
-		writeHTMLResponse(w, response.StatusInternalServerError, body500)
+		handler500(w, req)
 		return
 	}
 
-	writeHTMLResponse(w, response.StatusOK, body200)
+	if req.RequestLine.RequestTarget == "/video" {
+		handlerVideo(w, req)
+		return
+	}
+
+	handler200(w, req)
 }
 
-func writeHTMLResponse(w *response.Writer, statusCode response.StatusCode, body []byte) {
+func writeResponse(w *response.Writer, statusCode response.StatusCode, contentType string, body []byte) {
 	if err := w.WriteStatusLine(statusCode); err != nil {
 		log.Printf("Error writing status line: %v", err)
 		return
 	}
 
 	headers := response.GetDefaultHeaders(len(body))
-	headers.Override("content-type", "text/html")
+	headers.Override("content-type", contentType)
 	if err := w.WriteHeaders(headers); err != nil {
 		log.Printf("Error writing headers: %v", err)
 		return
@@ -59,40 +64,59 @@ func writeHTMLResponse(w *response.Writer, statusCode response.StatusCode, body 
 	}
 }
 
-var (
-	body400 = []byte(`
-		<html>
-			<head>
-				<title>400 Bad Request</title>
-			</head>
-			<body>
-				<h1>Bad Request</h1>
-				<p>Your request honestly kinda sucked.</p>
-			</body>
-		</html>
+func handler400(w *response.Writer, _ *request.Request) {
+	body := []byte(`
+<html>
+	<head>
+		<title>400 Bad Request</title>
+	</head>
+	<body>
+		<h1>Bad Request</h1>
+		<p>Your request honestly kinda sucked.</p>
+	</body>
+</html>
 	`)
+	writeResponse(w, response.StatusBadRequest, "text/html", body)
+}
 
-	body500 = []byte(`
-		<html>
-			<head>
-				<title>500 Internal Server Error</title>
-			</head>
-			<body>
-				<h1>Internal Server Error</h1>
-				<p>Okay, you know what? This one is on me.</p>
-			</body>
-		</html>
+func handler500(w *response.Writer, _ *request.Request) {
+	body := []byte(`
+<html>
+	<head>
+		<title>500 Internal Server Error</title>
+	</head>
+	<body>
+		<h1>Internal Server Error</h1>
+		<p>Okay, you know what? This one is on me.</p>
+	</body>
+</html>
 	`)
+	writeResponse(w, response.StatusInternalServerError, "text/html", body)
+}
 
-	body200 = []byte(`
-		<html>
-			<head>
-				<title>200 OK</title>
-			</head>
-			<body>
-				<h1>Success!</h1>
-				<p>Your request was an absolute banger.</p>
-			</body>
-		</html>
+func handler200(w *response.Writer, _ *request.Request) {
+	body := []byte(`
+<html>
+	<head>
+		<title>200 OK</title>
+	</head>
+	<body>
+		<h1>Success!</h1>
+		<p>Your request was an absolute banger.</p>
+	</body>
+</html>
 	`)
-)
+	writeResponse(w, response.StatusOK, "text/html", body)
+}
+
+func handlerVideo(w *response.Writer, req *request.Request) {
+	const filepath = "assets/vim.mp4"
+	videoBytes, err := os.ReadFile(filepath)
+	if err != nil {
+		log.Printf("Error reading video file: %v", err)
+		handler500(w, req)
+		return
+	}
+
+	writeResponse(w, response.StatusOK, "video/mp4", videoBytes)
+}
