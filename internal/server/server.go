@@ -4,6 +4,8 @@ import (
 	"log"
 	"net"
 	"strconv"
+
+	"github.com/dennisdijkstra/go-tcp-to-http/internal/response"
 )
 
 type Server struct {
@@ -28,7 +30,25 @@ func (s *Server) listen() {
 func (s *Server) handle(conn net.Conn) {
 	defer conn.Close()
 
-	conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 13\r\n\r\nHello World!"))
+	err := response.WriteStatusLine(conn, response.StatusOK)
+	if err != nil {
+		log.Printf("error writing status line: %v", err)
+		return
+	}
+
+	headers := response.GetDefaultHeaders(0)
+
+	err = response.WriteHeaders(conn, headers)
+	if err != nil {
+		log.Printf("error writing header: %v", err)
+		return
+	}
+
+	_, err = conn.Write([]byte("\r\n"))
+	if err != nil {
+		log.Printf("error writing blank line: %v", err)
+		return
+	}
 }
 
 func Serve(port int) (*Server, error) {
