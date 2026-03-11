@@ -38,15 +38,8 @@ func (s *Server) handle(conn net.Conn) {
 
 	headers := response.GetDefaultHeaders(0)
 
-	err = response.WriteHeaders(conn, headers)
-	if err != nil {
+	if err := response.WriteHeaders(conn, headers); err != nil {
 		log.Printf("error writing header: %v", err)
-		return
-	}
-
-	_, err = conn.Write([]byte("\r\n"))
-	if err != nil {
-		log.Printf("error writing blank line: %v", err)
 		return
 	}
 }

@@ -16,33 +16,26 @@ const (
 	StatusInternalServerError StatusCode = 500
 )
 
-func WriteStatusLine(w io.Writer, statusCode StatusCode) error {
-	fmt.Println("Writing status line", statusCode)
+func getStatusLine(statusCode StatusCode) []byte {
+	reasonPhrase := ""
 
 	switch statusCode {
 	case StatusOK:
-		_, err := w.Write([]byte("HTTP/1.1 200 OK\r\n"))
-		if err != nil {
-			return err
-		}
+		reasonPhrase = "OK"
 	case StatusBadRequest:
-		_, err := w.Write([]byte("HTTP/1.1 400 Bad Request\r\n"))
-		if err != nil {
-			return err
-		}
+		reasonPhrase = "Bad Request"
 	case StatusInternalServerError:
-		_, err := w.Write([]byte("HTTP/1.1 500 Internal Server Error\r\n"))
-		if err != nil {
-			return err
-		}
+		reasonPhrase = "Internal Server Error"
 	default:
-		_, err := w.Write([]byte(fmt.Sprintf("HTTP/1.1 %d \r\n", statusCode)))
-		if err != nil {
-			return err
-		}
+		reasonPhrase = "Unknown"
 	}
 
-	return nil
+	return []byte(fmt.Sprintf("HTTP/1.1 %d %s\r\n", statusCode, reasonPhrase))
+}
+
+func WriteStatusLine(w io.Writer, statusCode StatusCode) error {
+	_, err := w.Write(getStatusLine(statusCode))
+	return err
 }
 
 func GetDefaultHeaders(contentLen int) headers.Headers {
@@ -63,5 +56,6 @@ func WriteHeaders(w io.Writer, headers headers.Headers) error {
 		}
 	}
 
-	return nil
+	_, err := w.Write([]byte("\r\n"))
+	return err
 }
