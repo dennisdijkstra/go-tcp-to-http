@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"io"
@@ -11,6 +12,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/dennisdijkstra/go-tcp-to-http/internal/headers"
 	"github.com/dennisdijkstra/go-tcp-to-http/internal/request"
 	"github.com/dennisdijkstra/go-tcp-to-http/internal/response"
 	"github.com/dennisdijkstra/go-tcp-to-http/internal/server"
@@ -147,6 +149,7 @@ func handlerProxy(w *response.Writer, req *request.Request) {
 
 	h := response.GetDefaultHeaders(0)
 	h.Override("Transfer-Encoding", "chunked")
+	h.Override("Trailer", "X-Content-SHA256, X-Content-Length")
 	h.Remove("Content-Length")
 	if err := w.WriteHeaders(h); err != nil {
 		log.Printf("Error writing headers: %v", err)
@@ -155,13 +158,18 @@ func handlerProxy(w *response.Writer, req *request.Request) {
 
 	const maxChunkSize = 1024
 	buff := make([]byte, maxChunkSize)
+	fullBody := make([]byte, 0)
 	for {
 		n, err := r.Body.Read(buff)
+		if n > 0 {
+			w.WriteChunkedBody(buff[:n])
+			fullBody = append(fullBody, buff[:n]...)
+		}
+		if errors.Is(err, io.EOF) {
+			break
+		}
 		if err != nil {
-			if errors.Is(err, io.EOF) {
-				break
-			}
-			fmt.Println(err)
+			log.Printf("error reading response body: %v", err)
 			break
 		}
 
@@ -170,8 +178,18 @@ func handlerProxy(w *response.Writer, req *request.Request) {
 			log.Printf("error writing chunked body: %v", err)
 		}
 	}
-	_, err = w.WriteChunkedBodyDone()
-	if err != nil {
+
+	if _, err = w.WriteChunkedBodyDone(); err != nil {
+		log.Printf("error writing chunked body done: %v", err)
+	}
+
+	hash := sha256.Sum256(fullBody)
+	hashStr := fmt.Sprintf("%x", hash)
+	trailers := headers.NewHeaders()
+	trailers.Override("X-Content-SHA256", hashStr)
+	trailers.Override("X-Content-Length", fmt.Sprintf("%d", len(fullBody)))
+
+	if err = w.WriteTrailers(trailers); err != nil {
 		log.Printf("error writing chunked body trailer: %v", err)
 	}
 }
