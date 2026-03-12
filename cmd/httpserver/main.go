@@ -1,9 +1,14 @@
 package main
 
 import (
+	"errors"
+	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/dennisdijkstra/go-tcp-to-http/internal/request"
@@ -41,6 +46,50 @@ func handler(w *response.Writer, req *request.Request) {
 	if req.RequestLine.RequestTarget == "/video" {
 		handlerVideo(w, req)
 		return
+	}
+
+	if strings.HasPrefix(req.RequestLine.RequestTarget, "/httpbin/") {
+		trimmed := strings.TrimPrefix(req.RequestLine.RequestTarget, "/httpbin/")
+
+		r, err := http.Get("https://httpbin.org/" + trimmed)
+		if err != nil {
+			log.Printf("error proxying request: %v", err)
+		}
+		defer r.Body.Close()
+
+		if err := w.WriteStatusLine(response.StatusCode(r.StatusCode)); err != nil {
+			log.Printf("Error writing status line: %v", err)
+			return
+		}
+
+		headers := response.GetDefaultHeaders(0)
+		headers.Set("Transfer-Encoding", "chunked")
+		delete(headers, "content-length")
+		if err := w.WriteHeaders(headers); err != nil {
+			log.Printf("Error writing headers: %v", err)
+			return
+		}
+
+		buff := make([]byte, 1024)
+		for {
+			n, err := r.Body.Read(buff)
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
+				fmt.Println(err)
+				break
+			}
+
+			_, err = w.WriteChunkedBody(buff[:n])
+			if err != nil {
+				log.Printf("error writing chunked body: %v", err)
+			}
+		}
+		_, err = w.WriteChunkedBodyDone()
+		if err != nil {
+			log.Printf("error writing chunked body trailer: %v", err)
+		}
 	}
 
 	handler200(w, req)
