@@ -162,7 +162,11 @@ func handlerProxy(w *response.Writer, req *request.Request) {
 	for {
 		n, err := r.Body.Read(buff)
 		if n > 0 {
-			w.WriteChunkedBody(buff[:n])
+			_, err := w.WriteChunkedBody(buff[:n])
+			if err != nil {
+				log.Printf("error writing chunked body: %v", err)
+				break
+			}
 			fullBody = append(fullBody, buff[:n]...)
 		}
 		if errors.Is(err, io.EOF) {
