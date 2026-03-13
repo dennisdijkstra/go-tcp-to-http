@@ -146,7 +146,7 @@ func (r *Request) parseSingle(data []byte) (int, error) {
 	case requestStateDone:
 		return 0, errors.New("We're done already")
 	default:
-		return 0, errors.New("An unknown error occured")
+		return 0, errors.New("An unknown error occurred")
 	}
 }
 
