@@ -156,8 +156,8 @@ func handlerProxy(w *response.Writer, req *request.Request) {
 		return
 	}
 
-	const maxChunkSize = 1024
-	buf := make([]byte, maxChunkSize)
+	const chunkSize = 1024
+	buf := make([]byte, chunkSize)
 	fullBody := make([]byte, 0)
 	for {
 		n, err := r.Body.Read(buf)

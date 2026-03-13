@@ -59,7 +59,8 @@ func getLinesChannel(f io.ReadCloser) <-chan string {
 		defer close(lines)
 		defer f.Close()
 
-		buf := make([]byte, 8)
+		const readBufferSize = 8
+		buf := make([]byte, readBufferSize)
 		currLine := ""
 
 		for {

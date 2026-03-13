@@ -36,10 +36,10 @@ type RequestLine struct {
 }
 
 const crlf = "\r\n"
-const bufferSize = 8
+const readBufferSize = 8
 
 func RequestFromReader(reader io.Reader) (*Request, error) {
-	buf := make([]byte, bufferSize)
+	buf := make([]byte, readBufferSize)
 	readToIndex := 0
 	req := &Request{
 		state:   requestStateInitialized,
@@ -158,8 +158,9 @@ func parseRequestLine(data []byte) (*RequestLine, int, error) {
 
 	requestLineString := string(data[:index])
 
+	const requestLineParts = 3
 	parts := strings.Split(requestLineString, " ")
-	if len(parts) != 3 {
+	if len(parts) != requestLineParts {
 		return nil, 0, errors.New("Invalid request")
 	}
 
