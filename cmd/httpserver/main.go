@@ -157,17 +157,17 @@ func handlerProxy(w *response.Writer, req *request.Request) {
 	}
 
 	const maxChunkSize = 1024
-	buff := make([]byte, maxChunkSize)
+	buf := make([]byte, maxChunkSize)
 	fullBody := make([]byte, 0)
 	for {
-		n, err := r.Body.Read(buff)
+		n, err := r.Body.Read(buf)
 		if n > 0 {
-			_, err := w.WriteChunkedBody(buff[:n])
+			_, err := w.WriteChunkedBody(buf[:n])
 			if err != nil {
 				log.Printf("error writing chunked body: %v", err)
 				break
 			}
-			fullBody = append(fullBody, buff[:n]...)
+			fullBody = append(fullBody, buf[:n]...)
 		}
 		if errors.Is(err, io.EOF) {
 			break
@@ -177,7 +177,7 @@ func handlerProxy(w *response.Writer, req *request.Request) {
 			break
 		}
 
-		_, err = w.WriteChunkedBody(buff[:n])
+		_, err = w.WriteChunkedBody(buf[:n])
 		if err != nil {
 			log.Printf("error writing chunked body: %v", err)
 		}

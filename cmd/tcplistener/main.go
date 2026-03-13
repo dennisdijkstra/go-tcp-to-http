@@ -59,11 +59,11 @@ func getLinesChannel(f io.ReadCloser) <-chan string {
 		defer close(lines)
 		defer f.Close()
 
-		buff := make([]byte, 8)
+		buf := make([]byte, 8)
 		currLine := ""
 
 		for {
-			n, err := f.Read(buff)
+			n, err := f.Read(buf)
 			if err != nil {
 				if errors.Is(err, io.EOF) {
 					break
@@ -72,7 +72,7 @@ func getLinesChannel(f io.ReadCloser) <-chan string {
 				break
 			}
 
-			str := string(buff[:n])
+			str := string(buf[:n])
 			parts := strings.Split(str, "\n")
 			for i := 0; i < len(parts)-1; i++ {
 				lines <- currLine + parts[i]
