@@ -15,11 +15,6 @@ type Server struct {
 	handler  Handler
 }
 
-// type HandlerError struct {
-// 	StatusCode response.StatusCode
-// 	Message    string
-// }
-
 type Handler func(w *response.Writer, req *request.Request)
 
 func (s *Server) Close() error {
@@ -36,27 +31,6 @@ func (s *Server) listen() {
 		go s.handle(conn)
 	}
 }
-
-// func WriteHandlerError(w io.Writer, err *HandlerError) {
-// 	if err == nil {
-// 		return
-// 	}
-
-// 	if writeErr := response.WriteStatusLine(w, err.StatusCode); writeErr != nil {
-// 		log.Printf("Error writing status line: %v", writeErr)
-// 		return
-// 	}
-
-// 	headers := response.GetDefaultHeaders(len(err.Message))
-// 	if writeErr := response.WriteHeaders(w, headers); writeErr != nil {
-// 		log.Printf("Error writing headers: %v", writeErr)
-// 		return
-// 	}
-
-// 	if _, writeErr := w.Write([]byte(err.Message)); writeErr != nil {
-// 		log.Printf("Error writing error message: %v", writeErr)
-// 	}
-// }
 
 func (s *Server) handle(conn net.Conn) {
 	defer conn.Close()
